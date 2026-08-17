@@ -1,7 +1,7 @@
 import React from 'react';
-import { LogOut, UserCheck } from 'lucide-react';
+import { LogOut, Cloud, CloudCheck, CloudOff } from 'lucide-react';
 
-export const Header = ({ currentUser, onLogout }) => {
+export const Header = ({ currentUser, onLogout, syncStatus = 'synced' }) => {
   return (
     <header className="olive-header-bg text-white sticky top-0 z-40 shadow-md border-b border-emerald-900/40">
       <div className="max-w-2xl mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between">
@@ -39,9 +39,30 @@ export const Header = ({ currentUser, onLogout }) => {
             <h1 className="text-lg sm:text-xl font-black tracking-wider text-white leading-none uppercase drop-shadow-sm">
               HESAP TAKİP
             </h1>
-            <p className="text-[10px] sm:text-[11px] text-amber-200/90 font-bold tracking-wide mt-0.5">
-              Cari & Finans Sistemi
-            </p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <p className="text-[10px] sm:text-[11px] text-amber-200/90 font-bold tracking-wide">
+                Cari & Finans Sistemi
+              </p>
+              {/* Bulut Senkronizasyon Rozeti */}
+              <span title="Tüm verileriniz Firebase Bulut Sunucularında canlı olarak eşitleniyor" className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-900/60 border border-emerald-500/30 text-[9px] font-semibold text-emerald-300">
+                {syncStatus === 'syncing' ? (
+                  <>
+                    <Cloud size={10} className="animate-bounce text-amber-300" />
+                    <span>Eşitleniyor...</span>
+                  </>
+                ) : syncStatus === 'error' ? (
+                  <>
+                    <CloudOff size={10} className="text-red-400" />
+                    <span>Çevrimdışı</span>
+                  </>
+                ) : (
+                  <>
+                    <CloudCheck size={10} className="text-emerald-400" />
+                    <span>Bulut Canlı ☁️</span>
+                  </>
+                )}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -54,7 +75,7 @@ export const Header = ({ currentUser, onLogout }) => {
               </span>
               <span className="text-[9px] text-amber-300 font-medium flex items-center gap-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
-                Yetkili Girişi
+                Yetkili Oturumu
               </span>
             </div>
 

@@ -1,6 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { initialData } from './utils/helpers';
-import { subscribeToAuthChanges, logoutUser } from './utils/firebase';
+import {
+  subscribeToAuthChanges,
+  logoutUser,
+  subscribeToCloudData,
+  saveCloudData
+} from './utils/firebase';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { DashboardTab } from './components/DashboardTab';
@@ -15,8 +20,11 @@ export function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [syncStatus, setSyncStatus] = useState('synced'); // 'synced', 'syncing', 'error'
 
-  // Firebase Oturum Dinleyicisi
+  const isCloudLoadedRef = useRef(false);
+
+  // 1. Firebase Oturum Dinleyicisi
   useEffect(() => {
     const unsubscribe = subscribeToAuthChanges((user) => {
       setCurrentUser(user);
@@ -30,18 +38,7 @@ export function App() {
     };
   }, []);
 
-  const handleLogout = async () => {
-    if (window.confirm('Oturumu kapatmak istediğinize emin misiniz?')) {
-      try {
-        await logoutUser();
-        setCurrentUser(null);
-      } catch (err) {
-        console.error('Logout error:', err);
-      }
-    }
-  };
-
-  // LocalStorage state management
+  // 2. LocalStorage Varsayılan State
   const [data, setData] = useState(() => {
     const saved = localStorage.getItem('zeytin_takip_data_v1');
     if (saved) {
@@ -54,63 +51,121 @@ export function App() {
     return initialData;
   });
 
+  // 3. CLOUD FIRESTORE CANLI VERİ DİNLEYİCİSİ
   useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem('zeytin_takip_data_v1', JSON.stringify(data));
+    if (!currentUser) {
+      isCloudLoadedRef.current = false;
+      return;
     }
-  }, [data, currentUser]);
+
+    setSyncStatus('syncing');
+
+    // Firebase Firestore'dan canlı verileri çek ve dinle
+    const unsubscribeCloud = subscribeToCloudData(currentUser.uid, (cloudData) => {
+      if (cloudData && Object.keys(cloudData).length > 0) {
+        // Buluttan gelen veriyle yerel state'i güncelle
+        const { updatedAt, ...cleanData } = cloudData;
+        setData(cleanData);
+        localStorage.setItem('zeytin_takip_data_v1', JSON.stringify(cleanData));
+        isCloudLoadedRef.current = true;
+        setSyncStatus('synced');
+      } else {
+        // Eğer bulutta henüz veri yoksa (ilk oturum), yerel veriyi buluta gönder
+        saveCloudData(currentUser.uid, data).then(() => {
+          isCloudLoadedRef.current = true;
+          setSyncStatus('synced');
+        });
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribeCloud === 'function') {
+        unsubscribeCloud();
+      }
+    };
+  }, [currentUser]);
+
+  // 4. Veri Değiştiğinde Hem Buluta Hem LocalStorage'a Kaydet
+  const updateAndSyncData = (newDataOrUpdater) => {
+    setData((prevData) => {
+      const nextData = typeof newDataOrUpdater === 'function' ? newDataOrUpdater(prevData) : newDataOrUpdater;
+      
+      // LocalStorage yedek kaydı
+      localStorage.setItem('zeytin_takip_data_v1', JSON.stringify(nextData));
+      
+      // Buluta anında kaydet
+      if (currentUser) {
+        setSyncStatus('syncing');
+        saveCloudData(currentUser.uid, nextData)
+          .then(() => setSyncStatus('synced'))
+          .catch(() => setSyncStatus('error'));
+      }
+
+      return nextData;
+    });
+  };
+
+  const handleLogout = async () => {
+    if (window.confirm('Oturumu kapatmak istediğinize emin misiniz?')) {
+      try {
+        await logoutUser();
+        setCurrentUser(null);
+      } catch (err) {
+        console.error('Logout error:', err);
+      }
+    }
+  };
 
   // Reset to initial demo data
   const handleResetData = () => {
     if (confirm('Tüm veriler varsayılan örnek Türkçe veriler ile değiştirilecektir. Onaylıyor musunuz?')) {
-      setData(initialData);
-      localStorage.setItem('zeytin_takip_data_v1', JSON.stringify(initialData));
+      updateAndSyncData(initialData);
     }
   };
 
   // Import JSON backup
   const handleImportData = (importedData) => {
-    setData(importedData);
+    updateAndSyncData(importedData);
   };
 
   // --- OLIVE HANDLERS ---
   const handleAddOliveSale = (newSale) => {
-    setData((prev) => ({
+    updateAndSyncData((prev) => ({
       ...prev,
       oliveSales: [newSale, ...prev.oliveSales]
     }));
   };
 
   const handleDeleteOliveSale = (saleId) => {
-    setData((prev) => ({
+    updateAndSyncData((prev) => ({
       ...prev,
       oliveSales: prev.oliveSales.filter((s) => s.id !== saleId)
     }));
   };
 
   const handleAddOliveStock = (newStock) => {
-    setData((prev) => ({
+    updateAndSyncData((prev) => ({
       ...prev,
       oliveStockEntries: [newStock, ...prev.oliveStockEntries]
     }));
   };
 
   const handleDeleteOliveStock = (stockId) => {
-    setData((prev) => ({
+    updateAndSyncData((prev) => ({
       ...prev,
       oliveStockEntries: prev.oliveStockEntries.filter((s) => s.id !== stockId)
     }));
   };
 
   const handleAddOliveCost = (newCost) => {
-    setData((prev) => ({
+    updateAndSyncData((prev) => ({
       ...prev,
       oliveCosts: [newCost, ...prev.oliveCosts]
     }));
   };
 
   const handleDeleteOliveCost = (costId) => {
-    setData((prev) => ({
+    updateAndSyncData((prev) => ({
       ...prev,
       oliveCosts: prev.oliveCosts.filter((c) => c.id !== costId)
     }));
@@ -118,35 +173,35 @@ export function App() {
 
   // --- OIL HANDLERS ---
   const handleAddOilSale = (newSale) => {
-    setData((prev) => ({
+    updateAndSyncData((prev) => ({
       ...prev,
       oilSales: [newSale, ...prev.oilSales]
     }));
   };
 
   const handleDeleteOilSale = (saleId) => {
-    setData((prev) => ({
+    updateAndSyncData((prev) => ({
       ...prev,
       oilSales: prev.oilSales.filter((s) => s.id !== saleId)
     }));
   };
 
   const handleAddOilPurchase = (newPurch) => {
-    setData((prev) => ({
+    updateAndSyncData((prev) => ({
       ...prev,
       oilPurchases: [newPurch, ...prev.oilPurchases]
     }));
   };
 
   const handleDeleteOilPurchase = (purchId) => {
-    setData((prev) => ({
+    updateAndSyncData((prev) => ({
       ...prev,
       oilPurchases: prev.oilPurchases.filter((p) => p.id !== purchId)
     }));
   };
 
   const handleUpdateOilStockPrice = (price) => {
-    setData((prev) => ({
+    updateAndSyncData((prev) => ({
       ...prev,
       oilStockUnitPrice: price
     }));
@@ -156,8 +211,7 @@ export function App() {
   const handleRecordPayment = (customerName, amountToPay) => {
     let remainingToDistribute = amountToPay;
 
-    setData((prev) => {
-      // 1. First deduct from olive sales of this customer
+    updateAndSyncData((prev) => {
       const updatedOliveSales = prev.oliveSales.map((sale) => {
         if (remainingToDistribute <= 0) return sale;
         if (sale.customerName.trim().toLowerCase() === customerName.trim().toLowerCase() && sale.remainingBalance > 0) {
@@ -172,7 +226,6 @@ export function App() {
         return sale;
       });
 
-      // 2. Then deduct from olive oil sales if needed
       const updatedOilSales = prev.oilSales.map((sale) => {
         if (remainingToDistribute <= 0) return sale;
         if (sale.customerName.trim().toLowerCase() === customerName.trim().toLowerCase() && sale.remainingBalance > 0) {
@@ -197,7 +250,7 @@ export function App() {
 
   // --- PAYMENT PLAN HANDLERS ---
   const handleUpdatePaymentPlan = (newPlan) => {
-    setData((prev) => ({
+    updateAndSyncData((prev) => ({
       ...prev,
       paymentPlan: newPlan
     }));
@@ -205,28 +258,28 @@ export function App() {
 
   // --- ASSETS & DEBTS HANDLERS ---
   const handleAddDebt = (newDebt) => {
-    setData((prev) => ({
+    updateAndSyncData((prev) => ({
       ...prev,
       debts: [newDebt, ...prev.debts]
     }));
   };
 
   const handleDeleteDebt = (debtId) => {
-    setData((prev) => ({
+    updateAndSyncData((prev) => ({
       ...prev,
       debts: prev.debts.filter((d) => d.id !== debtId)
     }));
   };
 
   const handleAddAsset = (newAsset) => {
-    setData((prev) => ({
+    updateAndSyncData((prev) => ({
       ...prev,
       assets: [newAsset, ...prev.assets]
     }));
   };
 
   const handleDeleteAsset = (assetId) => {
-    setData((prev) => ({
+    updateAndSyncData((prev) => ({
       ...prev,
       assets: prev.assets.filter((a) => a.id !== assetId)
     }));
@@ -237,42 +290,24 @@ export function App() {
     const id = updatedItem?.id;
     if (!id) return;
 
-    if (id.startsWith('os-')) {
-      setData((prev) => ({
-        ...prev,
-        oliveSales: prev.oliveSales.map((item) => (item.id === id ? updatedItem : item))
-      }));
-    } else if (id.startsWith('oil-') || id.startsWith('oils-')) {
-      setData((prev) => ({
-        ...prev,
-        oilSales: prev.oilSales.map((item) => (item.id === id ? updatedItem : item))
-      }));
-    } else if (id.startsWith('op-')) {
-      setData((prev) => ({
-        ...prev,
-        oilPurchases: prev.oilPurchases.map((item) => (item.id === id ? updatedItem : item))
-      }));
-    } else if (id.startsWith('oc-')) {
-      setData((prev) => ({
-        ...prev,
-        oliveCosts: prev.oliveCosts.map((item) => (item.id === id ? updatedItem : item))
-      }));
-    } else if (id.startsWith('ost-')) {
-      setData((prev) => ({
-        ...prev,
-        oliveStockEntries: prev.oliveStockEntries.map((item) => (item.id === id ? updatedItem : item))
-      }));
-    } else if (id.startsWith('debt-')) {
-      setData((prev) => ({
-        ...prev,
-        debts: prev.debts.map((item) => (item.id === id ? updatedItem : item))
-      }));
-    } else if (id.startsWith('asset-')) {
-      setData((prev) => ({
-        ...prev,
-        assets: prev.assets.map((item) => (item.id === id ? updatedItem : item))
-      }));
-    }
+    updateAndSyncData((prev) => {
+      if (id.startsWith('os-')) {
+        return { ...prev, oliveSales: prev.oliveSales.map((item) => (item.id === id ? updatedItem : item)) };
+      } else if (id.startsWith('oil-') || id.startsWith('oils-')) {
+        return { ...prev, oilSales: prev.oilSales.map((item) => (item.id === id ? updatedItem : item)) };
+      } else if (id.startsWith('op-')) {
+        return { ...prev, oilPurchases: prev.oilPurchases.map((item) => (item.id === id ? updatedItem : item)) };
+      } else if (id.startsWith('oc-')) {
+        return { ...prev, oliveCosts: prev.oliveCosts.map((item) => (item.id === id ? updatedItem : item)) };
+      } else if (id.startsWith('ost-')) {
+        return { ...prev, oliveStockEntries: prev.oliveStockEntries.map((item) => (item.id === id ? updatedItem : item)) };
+      } else if (id.startsWith('debt-')) {
+        return { ...prev, debts: prev.debts.map((item) => (item.id === id ? updatedItem : item)) };
+      } else if (id.startsWith('asset-')) {
+        return { ...prev, assets: prev.assets.map((item) => (item.id === id ? updatedItem : item)) };
+      }
+      return prev;
+    });
   };
 
   const handleDeleteTransaction = (id) => {
@@ -313,7 +348,7 @@ export function App() {
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans pb-safe-nav">
       {/* Mobil Header Bar */}
-      <Header currentUser={currentUser} onLogout={handleLogout} />
+      <Header currentUser={currentUser} onLogout={handleLogout} syncStatus={syncStatus} />
 
       {/* Main Container - Mobile & Desktop Responsive Container */}
       <main className="flex-1 max-w-2xl mx-auto w-full px-3 py-3 space-y-4">
