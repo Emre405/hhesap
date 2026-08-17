@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "deploy": "vite build && firebase deploy --only hosting"
+    "deploy": "vite build && npx firebase-tools deploy --only hosting"
   },
   "dependencies": {
     "firebase": "^12.17.1",
