@@ -1,0 +1,18 @@
+{
+  "short_name": "Hesap Takip",
+  "name": "Hesap & Cari Takip Sistemi",
+  "description": "Zeytin ve Zeytinyağı Gelir, Gider, Stok ve Cari Takip Sistemi",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#064E3B",
+  "theme_color": "#283618",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
