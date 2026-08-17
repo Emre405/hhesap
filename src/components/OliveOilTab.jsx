@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { formatTL, formatNumber, getTodayString } from '../utils/helpers';
 import { exportToExcel } from '../utils/excel';
-import { PlusCircle, Search, FileSpreadsheet, Trash2, Droplets, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
+import { PlusCircle, Search, FileSpreadsheet, Trash2, Droplets, ArrowDownCircle, ArrowUpCircle, Filter } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import NumericInput from './NumericInput';
 
@@ -9,8 +9,13 @@ export const OliveOilTab = ({ data = {}, onAddOilSale, onDeleteOilSale, onAddOil
   const [subTab, setSubTab] = useState('sales'); // 'sales', 'purchases'
   const [confirmDeleteInfo, setConfirmDeleteInfo] = useState(null); // { id, type, title }
 
-  // Editable Kalan Stok Birim Fiyatı (Teneke Başına)
-  const [unitPriceInput, setUnitPriceInput] = useState(data.oilStockUnitPrice || 4000);
+  // Editable Kalan Stok Birim Fiyatı (Teneke Başına) - Varsayılan BOŞ (kullanıcı yazınca görünür)
+  const [unitPriceInput, setUnitPriceInput] = useState(() => {
+    if (data.oilStockUnitPrice !== undefined && data.oilStockUnitPrice !== null && data.oilStockUnitPrice !== 4000 && data.oilStockUnitPrice !== 3500) {
+      return data.oilStockUnitPrice;
+    }
+    return '';
+  });
 
   // Form State: Zeytinyağı Satışı
   const [saleDate, setSaleDate] = useState(getTodayString());
@@ -27,8 +32,12 @@ export const OliveOilTab = ({ data = {}, onAddOilSale, onDeleteOilSale, onAddOil
   const [purchTinCount, setPurchTinCount] = useState('');
   const [purchUnitPrice, setPurchUnitPrice] = useState('');
 
-  // Search filter
-  const [searchQuery, setSearchQuery] = useState('');
+  // Search & Limit Filters
+  const [searchQuerySales, setSearchQuerySales] = useState('');
+  const [salesLimit, setSalesLimit] = useState('all'); // '5', '10', '20', 'all'
+
+  const [searchQueryPurchases, setSearchQueryPurchases] = useState('');
+  const [purchasesLimit, setPurchasesLimit] = useState('all'); // '5', '10', '20', 'all'
 
   // Helper for tin liters multiplier
   const getLitersPerTin = (tinType) => {
@@ -141,12 +150,32 @@ export const OliveOilTab = ({ data = {}, onAddOilSale, onDeleteOilSale, onAddOil
 
   const handleStockPriceChange = (val) => {
     setUnitPriceInput(val);
-    onUpdateOilStockPrice(Number(val) || 0);
+    onUpdateOilStockPrice(val);
   };
 
-  const filteredOilSales = (data.oilSales || []).filter((s) =>
-    (s.customerName || '').toLowerCase().includes((searchQuery || '').toLowerCase())
-  );
+  // Filtered list for Sales
+  const filteredOilSales = useMemo(() => {
+    let list = (data.oilSales || []).filter((s) =>
+      (s.customerName || '').toLowerCase().includes((searchQuerySales || '').toLowerCase())
+    );
+    if (salesLimit !== 'all') {
+      const limitNum = Number(salesLimit);
+      return list.slice(0, limitNum);
+    }
+    return list;
+  }, [data.oilSales, searchQuerySales, salesLimit]);
+
+  // Filtered list for Purchases
+  const filteredOilPurchases = useMemo(() => {
+    let list = (data.oilPurchases || []).filter((p) =>
+      (p.supplier || '').toLowerCase().includes((searchQueryPurchases || '').toLowerCase())
+    );
+    if (purchasesLimit !== 'all') {
+      const limitNum = Number(purchasesLimit);
+      return list.slice(0, limitNum);
+    }
+    return list;
+  }, [data.oilPurchases, searchQueryPurchases, purchasesLimit]);
 
   return (
     <div className="space-y-4 pb-4">
@@ -155,7 +184,7 @@ export const OliveOilTab = ({ data = {}, onAddOilSale, onDeleteOilSale, onAddOil
         <button
           onClick={() => setSubTab('sales')}
           className={`flex-1 py-2 rounded-lg flex items-center justify-center space-x-1 transition ${
-            subTab === 'sales' ? 'bg-white text-amber-900 shadow-xs' : 'text-gray-600'
+            subTab === 'sales' ? 'bg-white text-amber-900 shadow-xs font-bold' : 'text-gray-600'
           }`}
         >
           <ArrowUpCircle size={16} className="text-emerald-600" />
@@ -164,7 +193,7 @@ export const OliveOilTab = ({ data = {}, onAddOilSale, onDeleteOilSale, onAddOil
         <button
           onClick={() => setSubTab('purchases')}
           className={`flex-1 py-2 rounded-lg flex items-center justify-center space-x-1 transition ${
-            subTab === 'purchases' ? 'bg-white text-amber-900 shadow-xs' : 'text-gray-600'
+            subTab === 'purchases' ? 'bg-white text-amber-900 shadow-xs font-bold' : 'text-gray-600'
           }`}
         >
           <ArrowDownCircle size={16} className="text-amber-600" />
@@ -284,7 +313,7 @@ export const OliveOilTab = ({ data = {}, onAddOilSale, onDeleteOilSale, onAddOil
               <button
                 onClick={() =>
                   exportToExcel(
-                    data.oilSales.map((s) => ({
+                    (data.oilSales || []).map((s) => ({
                       Tarih: s.date,
                       Müşteri: s.customerName,
                       Ambalaj: s.tinType,
@@ -299,22 +328,50 @@ export const OliveOilTab = ({ data = {}, onAddOilSale, onDeleteOilSale, onAddOil
                     'Yağ Satışları'
                   )
                 }
-                className="flex items-center space-x-1 bg-amber-100 text-amber-800 px-2.5 py-1 rounded-lg text-xs font-bold"
+                className="flex items-center space-x-1 bg-amber-100 text-amber-800 px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-amber-200 transition"
               >
                 <FileSpreadsheet size={14} />
                 <span>Excel</span>
               </button>
             </div>
 
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-3 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Müşteri ara..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none"
-              />
+            {/* ARAMA VE FİLTRELEME (SON 5, 10, 20, TÜMÜ) */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1">
+                <Search size={14} className="absolute left-3 top-3 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Müşteri ara..."
+                  value={searchQuerySales}
+                  onChange={(e) => setSearchQuerySales(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none"
+                />
+              </div>
+
+              {/* SON FİLTRE BUTONLARI */}
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold self-start sm:self-auto">
+                <span className="text-[10px] text-slate-500 font-bold px-1 flex items-center gap-0.5">
+                  <Filter size={11} /> Göster:
+                </span>
+                {[
+                  { id: '5', label: 'Son 5' },
+                  { id: '10', label: 'Son 10' },
+                  { id: '20', label: 'Son 20' },
+                  { id: 'all', label: 'Tümü' }
+                ].map((btn) => (
+                  <button
+                    key={btn.id}
+                    onClick={() => setSalesLimit(btn.id)}
+                    className={`px-2.5 py-1 rounded-lg transition ${
+                      salesLimit === btn.id
+                        ? 'bg-amber-700 text-white font-bold shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -425,14 +482,14 @@ export const OliveOilTab = ({ data = {}, onAddOilSale, onDeleteOilSale, onAddOil
             </form>
           </div>
 
-          {/* Geçmiş Alımlar */}
+          {/* Geçmiş Alımlar Listesi */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-lg sm:text-xl font-bold text-gray-900">Geçmiş Yağ Alımları</h3>
               <button
                 onClick={() =>
                   exportToExcel(
-                    data.oilPurchases.map((p) => ({
+                    (data.oilPurchases || []).map((p) => ({
                       Tarih: p.date,
                       Tedarikçi: p.supplier,
                       Ambalaj: p.tinType,
@@ -445,18 +502,57 @@ export const OliveOilTab = ({ data = {}, onAddOilSale, onDeleteOilSale, onAddOil
                     'Yağ Alımları'
                   )
                 }
-                className="flex items-center space-x-1 bg-amber-100 text-amber-800 px-2.5 py-1 rounded-lg text-xs font-bold"
+                className="flex items-center space-x-1 bg-amber-100 text-amber-800 px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-amber-200 transition"
               >
                 <FileSpreadsheet size={14} />
                 <span>Excel</span>
               </button>
             </div>
 
+            {/* ARAMA VE FİLTRELEME (SON 5, 10, 20, TÜMÜ) */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1">
+                <Search size={14} className="absolute left-3 top-3 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Tedarikçi ara..."
+                  value={searchQueryPurchases}
+                  onChange={(e) => setSearchQueryPurchases(e.target.value)}
+                  className="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none"
+                />
+              </div>
+
+              {/* SON FİLTRE BUTONLARI */}
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold self-start sm:self-auto">
+                <span className="text-[10px] text-slate-500 font-bold px-1 flex items-center gap-0.5">
+                  <Filter size={11} /> Göster:
+                </span>
+                {[
+                  { id: '5', label: 'Son 5' },
+                  { id: '10', label: 'Son 10' },
+                  { id: '20', label: 'Son 20' },
+                  { id: 'all', label: 'Tümü' }
+                ].map((btn) => (
+                  <button
+                    key={btn.id}
+                    onClick={() => setPurchasesLimit(btn.id)}
+                    className={`px-2.5 py-1 rounded-lg transition ${
+                      purchasesLimit === btn.id
+                        ? 'bg-amber-700 text-white font-bold shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-2">
-              {(data.oilPurchases || []).length === 0 ? (
+              {filteredOilPurchases.length === 0 ? (
                 <p className="text-center text-xs sm:text-sm text-gray-400 py-3">Kayıt yok.</p>
               ) : (
-                (data.oilPurchases || []).map((p) => (
+                filteredOilPurchases.map((p) => (
                   <div key={p.id} className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex justify-between items-center text-sm">
                     <div>
                       <span className="font-bold text-gray-900 text-sm sm:text-base">{p.supplier}</span>
@@ -502,8 +598,8 @@ export const OliveOilTab = ({ data = {}, onAddOilSale, onDeleteOilSale, onAddOil
             <NumericInput
               value={unitPriceInput}
               onChange={(e) => handleStockPriceChange(e.target.value)}
-              placeholder="TL/Teneke"
-              className="w-full mt-1 p-1.5 bg-amber-900/80 border border-yellow-400/50 rounded text-sm font-bold text-yellow-300 focus:outline-none"
+              placeholder="Fiyat Giriniz (TL)"
+              className="w-full mt-1 p-1.5 bg-amber-900/80 border border-yellow-400/50 rounded text-sm font-bold text-yellow-300 focus:outline-none placeholder-amber-300/50"
             />
           </div>
         </div>
@@ -541,3 +637,5 @@ export const OliveOilTab = ({ data = {}, onAddOilSale, onDeleteOilSale, onAddOil
     </div>
   );
 };
+
+export default OliveOilTab;

@@ -464,14 +464,14 @@ export const PaymentPlanTab = ({ paymentPlan = [], onUpdatePaymentPlan }) => {
 
               {/* FARK KARTI */}
               <div
-                className={`py-2 px-3 rounded-xl border flex justify-between items-center mt-2.5 text-xs sm:text-sm font-bold ${
+                className={`py-2.5 px-3.5 rounded-xl border flex justify-between items-center mt-2.5 shadow-xs ${
                   isPositive
-                    ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
-                    : 'bg-red-50 text-red-900 border-red-200'
+                    ? 'bg-emerald-100/90 text-emerald-950 border-emerald-300'
+                    : 'bg-red-100/90 text-red-950 border-red-300'
                 }`}
               >
-                <span className="font-extrabold">Fark:</span>
-                <span className={`text-sm sm:text-base font-black ${isPositive ? 'text-emerald-700' : 'text-red-600'}`}>
+                <span className="font-black text-sm sm:text-base tracking-wide">Fark:</span>
+                <span className={`text-base sm:text-lg font-black tracking-wide ${isPositive ? 'text-emerald-800' : 'text-red-700'}`}>
                   {formatTL(netBalance)}
                 </span>
               </div>

@@ -141,7 +141,7 @@ export const initialData = {
       totalPrice: 340000
     }
   ],
-  oilStockUnitPrice: 4000, // Teneke başına tahmini bakiye değeri (TL)
+  oilStockUnitPrice: '', // Teneke başına bakiye değeri (TL) (Varsayılan boş)
   
   paymentPlan: [
     {
