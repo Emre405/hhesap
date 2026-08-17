@@ -10,7 +10,16 @@ import {
   browserSessionPersistence
 } from 'firebase/auth';
 
-// 1. Firebase Yapılandırmasını Al (.env veya localStorage)
+// 1. Firebase hhesap Proje Yapılandırması
+export const defaultFirebaseConfig = {
+  apiKey: "AIzaSyAJizOVgE_t2wTzUF4EsBNga8KG7lczgCo",
+  authDomain: "hhesap.firebaseapp.com",
+  projectId: "hhesap",
+  storageBucket: "hhesap.firebasestorage.app",
+  messagingSenderId: "993107666569",
+  appId: "1:993107666569:web:b255098a3a06dfd0a98858"
+};
+
 export const getStoredFirebaseConfig = () => {
   try {
     const custom = localStorage.getItem('hesap_takip_firebase_config');
@@ -24,28 +33,15 @@ export const getStoredFirebaseConfig = () => {
     console.error('Custom Firebase config parse error:', e);
   }
 
-  // .env dosyasından oku
+  // .env dosyasından veya varsayılan hhesap konfigürasyonundan oku
   return {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-    appId: import.meta.env.VITE_FIREBASE_APP_ID || ''
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY || defaultFirebaseConfig.apiKey,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || defaultFirebaseConfig.authDomain,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || defaultFirebaseConfig.projectId,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || defaultFirebaseConfig.storageBucket,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || defaultFirebaseConfig.messagingSenderId,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID || defaultFirebaseConfig.appId
   };
-};
-
-export const saveCustomFirebaseConfig = (config) => {
-  if (!config || !config.apiKey || !config.projectId) {
-    throw new Error('Geçersiz Firebase yapılandırması');
-  }
-  localStorage.setItem('hesap_takip_firebase_config', JSON.stringify(config));
-  window.location.reload();
-};
-
-export const clearCustomFirebaseConfig = () => {
-  localStorage.removeItem('hesap_takip_firebase_config');
-  window.location.reload();
 };
 
 export const isFirebaseConfigured = () => {
@@ -59,13 +55,11 @@ const firebaseConfig = getStoredFirebaseConfig();
 let app;
 let auth;
 
-if (isFirebaseConfigured()) {
-  try {
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
-  } catch (err) {
-    console.error('Firebase initialization error:', err);
-  }
+try {
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+  auth = getAuth(app);
+} catch (err) {
+  console.error('Firebase initialization error:', err);
 }
 
 export { auth, app };
@@ -73,7 +67,7 @@ export { auth, app };
 // 3. Giriş İşlemi
 export const loginWithEmail = async (email, password, rememberMe = true) => {
   if (!auth) {
-    throw new Error('Firebase yapılandırması henüz tamamlanmadı.');
+    throw new Error('Firebase Auth servisine bağlanılamadı.');
   }
 
   // Kalıcılık ayarı (Beni Hatırla)
@@ -92,15 +86,7 @@ export const logoutUser = async () => {
   return await signOut(auth);
 };
 
-// 5. Şifre Sıfırlama E-postası
-export const resetPassword = async (email) => {
-  if (!auth) {
-    throw new Error('Firebase yapılandırması henüz tamamlanmadı.');
-  }
-  return await sendPasswordResetEmail(auth, email.trim());
-};
-
-// 6. Oturum Durumu Dinleyicisi
+// 5. Oturum Durumu Dinleyicisi
 export const subscribeToAuthChanges = (callback) => {
   if (!auth) {
     callback(null);
@@ -109,7 +95,7 @@ export const subscribeToAuthChanges = (callback) => {
   return onAuthStateChanged(auth, callback);
 };
 
-// 7. Türkçe Anlaşılır Hata Mesajları
+// 6. Türkçe Anlaşılır Hata Mesajları
 export const getFirebaseAuthErrorMessage = (errorCode) => {
   switch (errorCode) {
     case 'auth/invalid-credential':
@@ -122,7 +108,7 @@ export const getFirebaseAuthErrorMessage = (errorCode) => {
     case 'auth/user-disabled':
       return 'Bu kullanıcı hesabı devre dışı bırakılmış.';
     case 'auth/too-many-requests':
-      return 'Çok fazla başarısız giriş denemesi yapıldı. Lütfen biraz bekleyin veya şifrenizi sıfırlayın.';
+      return 'Çok fazla başarısız giriş denemesi yapıldı. Lütfen biraz bekleyin.';
     case 'auth/network-request-failed':
       return 'İnternet bağlantısı hatası! Lütfen internetinizi kontrol ediniz.';
     case 'auth/operation-not-allowed':
@@ -132,6 +118,6 @@ export const getFirebaseAuthErrorMessage = (errorCode) => {
     case 'auth/missing-email':
       return 'Lütfen e-posta adresinizi giriniz.';
     default:
-      return `Giriş yapılamadı: ${errorCode || 'Bilinmeyen hata'}`;
+      return `Giriş yapılamadı (${errorCode || 'Hata'}). Lütfen e-posta ve şifrenizi kontrol ediniz.`;
   }
 };
