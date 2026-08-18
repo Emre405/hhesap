@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { formatTL } from '../utils/helpers';
-import { exportToExcel, downloadFile, generateHTMLBackup } from '../utils/excel';
+import { exportToExcel, downloadFile, generateHTMLBackup, generatePDFBackup, generateTXTBackup } from '../utils/excel';
 import { PlusCircle, Trash2, Download, Upload, ShieldCheck, FileText, Landmark, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import NumericInput from './NumericInput';
@@ -63,32 +63,18 @@ export const AssetsDebtsTab = ({
   };
 
   // Backups
+  const handleDownloadPDF = () => {
+    generatePDFBackup(data);
+  };
+
   const handleDownloadTXT = () => {
-    const txtContent = `================================================
-ZEYTİN VE ZEYTİNYAĞI TAKİP SİSTEMİ - TÜM VERİ YEDEĞİ
-Tarih: ${new Date().toLocaleString('tr-TR')}
-================================================
-
-1. GENEL ÖZET:
-- Toplam Genel Varlıklar: ${formatTL(totalAssets)}
-- Toplam Genel Borçlar: ${formatTL(totalDebts)}
-- Net Varlık Farkı: ${formatTL(netWorth)}
-
-2. BORÇLAR LISTESI:
-${data.debts.map((d) => `- ${d.description} (${d.category}): ${formatTL(d.amount)}`).join('\n')}
-
-3. VARLIKLAR LISTESI:
-${data.assets.map((a) => `- ${a.description} (${a.type}): ${formatTL(a.amount)}`).join('\n')}
-
-4. HAM JSON DATA:
-${JSON.stringify(data, null, 2)}
-`;
-    downloadFile(txtContent, `Zeytin_Takip_Yedek_${Date.now()}.txt`, 'text/plain;charset=utf-8');
+    const txtContent = generateTXTBackup(data);
+    downloadFile(txtContent, `Zeytin_Takip_Detayli_Yedek_${Date.now()}.txt`, 'text/plain;charset=utf-8');
   };
 
   const handleDownloadHTML = () => {
     const htmlContent = generateHTMLBackup(data);
-    downloadFile(htmlContent, `Zeytin_Takip_Yedek_${Date.now()}.html`, 'text/html;charset=utf-8');
+    downloadFile(htmlContent, `Zeytin_Takip_Detayli_Yedek_${Date.now()}.html`, 'text/html;charset=utf-8');
   };
 
   const handleDownloadJSON = () => {
@@ -364,10 +350,18 @@ ${JSON.stringify(data, null, 2)}
               Tüm zeytin, zeytinyağı, müşteri cari hesapları, ödeme planı ve bilanço verilerinizi tek tıkla cihazınıza indirebilirsiniz.
             </p>
 
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              <button
+                onClick={handleDownloadPDF}
+                className="p-3 bg-red-700 hover:bg-red-800 text-white rounded-xl font-bold text-xs flex flex-col items-center justify-center space-y-1 shadow-sm transition active:scale-95"
+              >
+                <FileText size={18} className="text-red-200" />
+                <span>Detaylı PDF (.pdf)</span>
+              </button>
+
               <button
                 onClick={handleDownloadTXT}
-                className="p-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs flex flex-col items-center justify-center space-y-1 shadow-sm"
+                className="p-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs flex flex-col items-center justify-center space-y-1 shadow-sm transition active:scale-95"
               >
                 <FileText size={18} className="text-amber-400" />
                 <span>Metin Dosyası (.txt)</span>
@@ -375,7 +369,7 @@ ${JSON.stringify(data, null, 2)}
 
               <button
                 onClick={handleDownloadHTML}
-                className="p-3 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl font-bold text-xs flex flex-col items-center justify-center space-y-1 shadow-sm"
+                className="p-3 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl font-bold text-xs flex flex-col items-center justify-center space-y-1 shadow-sm transition active:scale-95"
               >
                 <FileText size={18} className="text-emerald-300" />
                 <span>HTML Dosyası (.html)</span>
@@ -383,13 +377,13 @@ ${JSON.stringify(data, null, 2)}
 
               <button
                 onClick={handleDownloadJSON}
-                className="p-3 bg-indigo-800 hover:bg-indigo-900 text-white rounded-xl font-bold text-xs flex flex-col items-center justify-center space-y-1 shadow-sm"
+                className="p-3 bg-indigo-800 hover:bg-indigo-900 text-white rounded-xl font-bold text-xs flex flex-col items-center justify-center space-y-1 shadow-sm transition active:scale-95"
               >
                 <Download size={18} className="text-indigo-300" />
                 <span>JSON Dosyası (.json)</span>
               </button>
 
-              <label className="p-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs flex flex-col items-center justify-center space-y-1 shadow-sm cursor-pointer">
+              <label className="p-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs flex flex-col items-center justify-center space-y-1 shadow-sm cursor-pointer transition active:scale-95">
                 <Upload size={18} className="text-yellow-200" />
                 <span>Yedek Yükle (Import)</span>
                 <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />

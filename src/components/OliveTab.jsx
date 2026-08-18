@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { formatTL, formatNumber, getTodayString } from '../utils/helpers';
 import { exportToExcel } from '../utils/excel';
-import { PlusCircle, Search, FileSpreadsheet, Trash2, ChevronDown, ChevronUp, ShoppingBag, Box, DollarSign } from 'lucide-react';
+import { PlusCircle, Search, FileSpreadsheet, Trash2, ChevronDown, ChevronUp, ShoppingBag, Box, DollarSign, Filter } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal';
 import NumericInput from './NumericInput';
 
@@ -299,7 +299,7 @@ export const OliveTab = ({ data, onAddOliveSale, onDeleteOliveSale, onAddOliveSt
             </div>
 
             {/* Arama & Sayfalama */}
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
                 <Search size={14} className="absolute left-3 top-3 text-gray-400" />
                 <input
@@ -307,20 +307,34 @@ export const OliveTab = ({ data, onAddOliveSale, onDeleteOliveSale, onAddOliveSt
                   placeholder="Müşteri veya kalibre ara..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none"
+                  className="w-full pl-8 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none"
                 />
               </div>
 
-              <select
-                value={pageSize}
-                onChange={(e) => setPageSize(e.target.value)}
-                className="py-2 px-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700"
-              >
-                <option value="5">Son 5</option>
-                <option value="10">Son 10</option>
-                <option value="20">Son 20</option>
-                <option value="all">Tümü</option>
-              </select>
+              {/* SON FİLTRE BUTONLARI */}
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold self-start sm:self-auto">
+                <span className="text-[10px] text-slate-500 font-bold px-1 flex items-center gap-0.5">
+                  <Filter size={11} /> Göster:
+                </span>
+                {[
+                  { id: '5', label: 'Son 5' },
+                  { id: '10', label: 'Son 10' },
+                  { id: '20', label: 'Son 20' },
+                  { id: 'all', label: 'Tümü' }
+                ].map((btn) => (
+                  <button
+                    key={btn.id}
+                    onClick={() => setPageSize(btn.id)}
+                    className={`px-2.5 py-1 rounded-lg transition ${
+                      pageSize === btn.id
+                        ? 'bg-emerald-700 text-white font-bold shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Mobil Kart Yapısında Liste */}

@@ -259,7 +259,7 @@ export const PaymentPlanTab = ({ paymentPlan = [], onUpdatePaymentPlan }) => {
       )}
 
       {/* DÖNER 6 AYLIK KARTLAR */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+      <div className="space-y-6">
         {displayedList.map((mCard, idx) => {
           const isCurrentMonth = mCard.month === currentMonthStr;
           const totalRec = (mCard.receivables || []).reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
@@ -270,212 +270,224 @@ export const PaymentPlanTab = ({ paymentPlan = [], onUpdatePaymentPlan }) => {
           const formattedMonthLabel = formatMonthTitle(mCard.month);
 
           return (
-            <div
-              key={mCard.month}
-              className={`bg-white rounded-2xl p-4 shadow-xs border transition-all ${
-                isCurrentMonth ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200'
-              }`}
-            >
-              {/* Kart Başlığı */}
-              <div className="relative flex items-center justify-center border-b border-gray-100 pb-2">
-                <div className="flex items-center space-x-2 justify-center text-center">
-                  <span className={`text-base sm:text-lg font-black px-3.5 py-1.5 rounded-xl flex items-center space-x-1.5 ${
-                    isCurrentMonth 
-                      ? 'bg-emerald-700 text-white border border-emerald-800 shadow-xs' 
-                      : 'text-emerald-900 bg-emerald-50 border border-emerald-100'
-                  }`}>
-                    <span>🗓️ {formattedMonthLabel}</span>
+            <React.Fragment key={mCard.month}>
+              {/* AYLAR ARASI KALIN SİYAH ÇİZGİ SEPARATÖRÜ */}
+              {idx > 0 && (
+                <div className="flex items-center my-6">
+                  <div className="flex-1 border-t-4 border-black"></div>
+                  <span className="px-3 text-xs font-black text-slate-900 bg-slate-200 py-1 rounded-full uppercase tracking-wider mx-2">
+                    {formattedMonthLabel}
                   </span>
-
-                  <span className="text-xs text-slate-400 font-bold">
-                    ({idx + 1} / 6)
-                  </span>
+                  <div className="flex-1 border-t-4 border-black"></div>
                 </div>
+              )}
 
-                <button
-                  onClick={() => setDeletingMonthId(mCard.month)}
-                  title="Kart İçeriğini Temizle"
-                  className="absolute right-0 text-gray-400 hover:text-red-600 p-1 hover:bg-red-50 rounded-lg transition"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-
-              {/* Alacaklar ve Ödemeler Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs sm:text-sm mt-2.5">
-                {/* ALACAKLAR */}
-                <div className="bg-green-50/60 p-3 rounded-xl border border-green-100 space-y-2">
-                  <div className="flex justify-between items-center border-b border-green-200/60 pb-1.5">
-                    <span className="font-bold text-green-900 flex items-center space-x-1">
-                      <TrendingUp size={16} className="text-green-600" />
-                      <span>Alacaklar & Gelirler (+)</span>
-                    </span>
-                    <button
-                      onClick={() => {
-                        setNewItemMonthId(mCard.month);
-                        setItemType('receivable');
-                      }}
-                      className="text-xs bg-green-700 text-white font-bold px-2.5 py-1 rounded-full hover:bg-green-800 transition active:scale-95"
-                    >
-                      + Alacak Ekle
-                    </button>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    {mCard.receivables.length === 0 ? (
-                      <p className="text-xs text-slate-500 italic py-1">Alacak kaydı yok</p>
-                    ) : (
-                      mCard.receivables.map((r) => (
-                        <div
-                          key={r.id}
-                          className={`flex justify-between items-center p-2 rounded-lg border text-xs sm:text-sm ${
-                            r.isCarryOver || r.title?.includes('Önceki Aydan') || r.title?.includes('Geçmiş Aylardan')
-                              ? 'bg-amber-50 border-amber-200 font-bold text-amber-950 shadow-xs'
-                              : 'bg-white border-green-100 text-slate-800'
-                          }`}
-                        >
-                          <span className="font-medium flex items-center space-x-1 truncate max-w-[70%]">
-                            {(r.isCarryOver || r.title?.includes('Önceki Aydan') || r.title?.includes('Geçmiş Aylardan')) && (
-                              <span className="text-[10px] bg-amber-200 text-amber-900 px-1 py-0.2 rounded font-extrabold mr-1 flex-shrink-0">
-                                DEVİR
-                              </span>
-                            )}
-                            <span className="truncate">{r.title}</span>
-                          </span>
-                          <div className="flex items-center space-x-1.5 flex-shrink-0">
-                            <span className="font-bold text-green-800">{formatTL(r.amount)}</span>
-                            {!r.isCarryOver && (
-                              <div className="flex items-center space-x-0.5">
-                                <button
-                                  onClick={() =>
-                                    setEditingItemInfo({
-                                      monthId: mCard.month,
-                                      itemId: r.id,
-                                      title: r.title,
-                                      amount: String(r.amount),
-                                      type: 'receivable'
-                                    })
-                                  }
-                                  title="Kalemi Düzenle"
-                                  className="text-blue-500 hover:text-blue-700 p-1 hover:bg-blue-50 rounded transition"
-                                >
-                                  <Edit3 size={14} />
-                                </button>
-                                <button
-                                  onClick={() => setDeletingItemInfo({ monthId: mCard.month, itemId: r.id, title: r.title, type: 'receivable' })}
-                                  title="Kalemi Sil"
-                                  className="text-red-400 hover:text-red-600 p-1 hover:bg-red-50 rounded transition"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  <div className="pt-1.5 border-t border-green-200/60 flex justify-between font-bold text-green-950 text-sm">
-                    <span>Toplam Alacak:</span>
-                    <span>{formatTL(totalRec)}</span>
-                  </div>
-                </div>
-
-                {/* ÖDEMELER */}
-                <div className="bg-red-50/60 p-3 rounded-xl border border-red-100 space-y-2">
-                  <div className="flex justify-between items-center border-b border-red-200/60 pb-1.5">
-                    <span className="font-bold text-red-900 flex items-center space-x-1">
-                      <TrendingDown size={16} className="text-red-600" />
-                      <span>Ödemeler & Borçlar (-)</span>
-                    </span>
-                    <button
-                      onClick={() => {
-                        setNewItemMonthId(mCard.month);
-                        setItemType('payment');
-                      }}
-                      className="text-xs bg-red-700 text-white font-bold px-2.5 py-1 rounded-full hover:bg-red-800 transition active:scale-95"
-                    >
-                      + Ödeme Ekle
-                    </button>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    {mCard.payments.length === 0 ? (
-                      <p className="text-xs text-slate-500 italic py-1">Ödeme kaydı yok</p>
-                    ) : (
-                      mCard.payments.map((p) => (
-                        <div
-                          key={p.id}
-                          className={`flex justify-between items-center p-2 rounded-lg border text-xs sm:text-sm ${
-                            p.isCarryOver || p.title?.includes('Önceki Aydan') || p.title?.includes('Geçmiş Aylardan')
-                              ? 'bg-rose-100/70 border-rose-300 font-bold text-rose-950 shadow-xs'
-                              : 'bg-white border-red-100 text-slate-800'
-                          }`}
-                        >
-                          <span className="font-medium flex items-center space-x-1 truncate max-w-[70%]">
-                            {(p.isCarryOver || p.title?.includes('Önceki Aydan') || p.title?.includes('Geçmiş Aylardan')) && (
-                              <span className="text-[10px] bg-rose-200 text-rose-900 px-1 py-0.2 rounded font-extrabold mr-1 flex-shrink-0">
-                                DEVİR BORÇ
-                              </span>
-                            )}
-                            <span className="truncate">{p.title}</span>
-                          </span>
-                          <div className="flex items-center space-x-1.5 flex-shrink-0">
-                            <span className="font-bold text-red-700">{formatTL(p.amount)}</span>
-                            {!p.isCarryOver && (
-                              <div className="flex items-center space-x-0.5">
-                                <button
-                                  onClick={() =>
-                                    setEditingItemInfo({
-                                      monthId: mCard.month,
-                                      itemId: p.id,
-                                      title: p.title,
-                                      amount: String(p.amount),
-                                      type: 'payment'
-                                    })
-                                  }
-                                  title="Kalemi Düzenle"
-                                  className="text-blue-500 hover:text-blue-700 p-1 hover:bg-blue-50 rounded transition"
-                                >
-                                  <Edit3 size={14} />
-                                </button>
-                                <button
-                                  onClick={() => setDeletingItemInfo({ monthId: mCard.month, itemId: p.id, title: p.title, type: 'payment' })}
-                                  title="Kalemi Sil"
-                                  className="text-red-400 hover:text-red-600 p-1 hover:bg-red-50 rounded transition"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  <div className="pt-1.5 border-t border-red-200/60 flex justify-between font-bold text-red-950 text-sm">
-                    <span>Toplam Ödeme:</span>
-                    <span>{formatTL(totalPay)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* FARK KARTI */}
               <div
-                className={`py-2.5 px-3.5 rounded-xl border flex justify-between items-center mt-2.5 shadow-xs ${
-                  isPositive
-                    ? 'bg-emerald-100/90 text-emerald-950 border-emerald-300'
-                    : 'bg-red-100/90 text-red-950 border-red-300'
+                className={`bg-white rounded-2xl p-4 shadow-sm border-2 transition-all ${
+                  isCurrentMonth ? 'border-emerald-600 ring-2 ring-emerald-500/20' : 'border-slate-800'
                 }`}
               >
-                <span className="font-black text-sm sm:text-base tracking-wide">Fark:</span>
-                <span className={`text-base sm:text-lg font-black tracking-wide ${isPositive ? 'text-emerald-800' : 'text-red-700'}`}>
-                  {formatTL(netBalance)}
-                </span>
+                {/* Kart Başlığı */}
+                <div className="relative flex items-center justify-center border-b border-gray-100 pb-2">
+                  <div className="flex items-center space-x-2 justify-center text-center">
+                    <span className={`text-base sm:text-lg font-black px-3.5 py-1.5 rounded-xl flex items-center space-x-1.5 ${
+                      isCurrentMonth 
+                        ? 'bg-emerald-700 text-white border border-emerald-800 shadow-xs' 
+                        : 'text-emerald-900 bg-emerald-50 border border-emerald-100'
+                    }`}>
+                      <span>🗓️ {formattedMonthLabel}</span>
+                    </span>
+
+                    <span className="text-xs text-slate-500 font-bold">
+                      ({idx + 1} / 6)
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => setDeletingMonthId(mCard.month)}
+                    title="Kart İçeriğini Temizle"
+                    className="absolute right-0 text-gray-400 hover:text-red-600 p-1 hover:bg-red-50 rounded-lg transition"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+
+                {/* Alacaklar ve Ödemeler Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs sm:text-sm mt-2.5">
+                  {/* ALACAKLAR */}
+                  <div className="bg-green-50/60 p-3 rounded-xl border border-green-100 space-y-2">
+                    <div className="flex justify-between items-center border-b border-green-200/60 pb-1.5">
+                      <span className="font-bold text-green-900 flex items-center space-x-1">
+                        <TrendingUp size={16} className="text-green-600" />
+                        <span>Alacaklar & Gelirler (+)</span>
+                      </span>
+                      <button
+                        onClick={() => {
+                          setNewItemMonthId(mCard.month);
+                          setItemType('receivable');
+                        }}
+                        className="text-xs bg-green-700 text-white font-bold px-2.5 py-1 rounded-full hover:bg-green-800 transition active:scale-95"
+                      >
+                        + Alacak Ekle
+                      </button>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {mCard.receivables.length === 0 ? (
+                        <p className="text-xs text-slate-500 italic py-1">Alacak kaydı yok</p>
+                      ) : (
+                        mCard.receivables.map((r) => (
+                          <div
+                            key={r.id}
+                            className={`flex justify-between items-center p-2 rounded-lg border text-xs sm:text-sm ${
+                              r.isCarryOver || r.title?.includes('Önceki Aydan') || r.title?.includes('Geçmiş Aylardan')
+                                ? 'bg-amber-50 border-amber-200 font-bold text-amber-950 shadow-xs'
+                                : 'bg-white border-green-100 text-slate-800'
+                            }`}
+                          >
+                            <span className="font-medium flex items-center space-x-1 truncate max-w-[70%]">
+                              {(r.isCarryOver || r.title?.includes('Önceki Aydan') || r.title?.includes('Geçmiş Aylardan')) && (
+                                <span className="text-[10px] bg-amber-200 text-amber-900 px-1 py-0.2 rounded font-extrabold mr-1 flex-shrink-0">
+                                  DEVİR
+                                </span>
+                              )}
+                              <span className="truncate">{r.title}</span>
+                            </span>
+                            <div className="flex items-center space-x-1.5 flex-shrink-0">
+                              <span className="font-bold text-green-800">{formatTL(r.amount)}</span>
+                              {!r.isCarryOver && (
+                                <div className="flex items-center space-x-0.5">
+                                  <button
+                                    onClick={() =>
+                                      setEditingItemInfo({
+                                        monthId: mCard.month,
+                                        itemId: r.id,
+                                        title: r.title,
+                                        amount: String(r.amount),
+                                        type: 'receivable'
+                                      })
+                                    }
+                                    title="Kalemi Düzenle"
+                                    className="text-blue-500 hover:text-blue-700 p-1 hover:bg-blue-50 rounded transition"
+                                  >
+                                    <Edit3 size={14} />
+                                  </button>
+                                  <button
+                                    onClick={() => setDeletingItemInfo({ monthId: mCard.month, itemId: r.id, title: r.title, type: 'receivable' })}
+                                    title="Kalemi Sil"
+                                    className="text-red-400 hover:text-red-600 p-1 hover:bg-red-50 rounded transition"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    <div className="pt-1.5 border-t border-green-200/60 flex justify-between font-bold text-green-950 text-sm">
+                      <span>Toplam Alacak:</span>
+                      <span>{formatTL(totalRec)}</span>
+                    </div>
+                  </div>
+
+                  {/* ÖDEMELER */}
+                  <div className="bg-red-50/60 p-3 rounded-xl border border-red-100 space-y-2">
+                    <div className="flex justify-between items-center border-b border-red-200/60 pb-1.5">
+                      <span className="font-bold text-red-900 flex items-center space-x-1">
+                        <TrendingDown size={16} className="text-red-600" />
+                        <span>Ödemeler & Borçlar (-)</span>
+                      </span>
+                      <button
+                        onClick={() => {
+                          setNewItemMonthId(mCard.month);
+                          setItemType('payment');
+                        }}
+                        className="text-xs bg-red-700 text-white font-bold px-2.5 py-1 rounded-full hover:bg-red-800 transition active:scale-95"
+                      >
+                        + Ödeme Ekle
+                      </button>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {mCard.payments.length === 0 ? (
+                        <p className="text-xs text-slate-500 italic py-1">Ödeme kaydı yok</p>
+                      ) : (
+                        mCard.payments.map((p) => (
+                          <div
+                            key={p.id}
+                            className={`flex justify-between items-center p-2 rounded-lg border text-xs sm:text-sm ${
+                              p.isCarryOver || p.title?.includes('Önceki Aydan') || p.title?.includes('Geçmiş Aylardan')
+                                ? 'bg-rose-100/70 border-rose-300 font-bold text-rose-950 shadow-xs'
+                                : 'bg-white border-red-100 text-slate-800'
+                            }`}
+                          >
+                            <span className="font-medium flex items-center space-x-1 truncate max-w-[70%]">
+                              {(p.isCarryOver || p.title?.includes('Önceki Aydan') || p.title?.includes('Geçmiş Aylardan')) && (
+                                <span className="text-[10px] bg-rose-200 text-rose-900 px-1 py-0.2 rounded font-extrabold mr-1 flex-shrink-0">
+                                  DEVİR BORÇ
+                                </span>
+                              )}
+                              <span className="truncate">{p.title}</span>
+                            </span>
+                            <div className="flex items-center space-x-1.5 flex-shrink-0">
+                              <span className="font-bold text-red-700">{formatTL(p.amount)}</span>
+                              {!p.isCarryOver && (
+                                <div className="flex items-center space-x-0.5">
+                                  <button
+                                    onClick={() =>
+                                      setEditingItemInfo({
+                                        monthId: mCard.month,
+                                        itemId: p.id,
+                                        title: p.title,
+                                        amount: String(p.amount),
+                                        type: 'payment'
+                                      })
+                                    }
+                                    title="Kalemi Düzenle"
+                                    className="text-blue-500 hover:text-blue-700 p-1 hover:bg-blue-50 rounded transition"
+                                  >
+                                    <Edit3 size={14} />
+                                  </button>
+                                  <button
+                                    onClick={() => setDeletingItemInfo({ monthId: mCard.month, itemId: p.id, title: p.title, type: 'payment' })}
+                                    title="Kalemi Sil"
+                                    className="text-red-400 hover:text-red-600 p-1 hover:bg-red-50 rounded transition"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    <div className="pt-1.5 border-t border-red-200/60 flex justify-between font-bold text-red-950 text-sm">
+                      <span>Toplam Ödeme:</span>
+                      <span>{formatTL(totalPay)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* FARK KARTI - PUNTASI BÜYÜTÜLMÜŞ VE ORTALANMIŞ */}
+                <div
+                  className={`py-3 px-4 rounded-xl border flex items-center justify-center space-x-3 text-center mt-3 shadow-xs ${
+                    isPositive
+                      ? 'bg-emerald-100/90 text-emerald-950 border-emerald-300'
+                      : 'bg-red-100/90 text-red-950 border-red-300'
+                  }`}
+                >
+                  <span className="font-black text-base sm:text-lg tracking-wide">Fark:</span>
+                  <span className={`text-lg sm:text-xl font-black tracking-wide ${isPositive ? 'text-emerald-800' : 'text-red-700'}`}>
+                    {formatTL(netBalance)}
+                  </span>
+                </div>
               </div>
-            </div>
+            </React.Fragment>
           );
         })}
       </div>
